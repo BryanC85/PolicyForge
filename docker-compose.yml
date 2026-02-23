@@ -1,0 +1,38 @@
+version: '3.9'
+services:
+  db:
+    image: ankane/pgvector:latest
+    environment:
+      POSTGRES_USER: policyforge
+      POSTGRES_PASSWORD: policyforge
+      POSTGRES_DB: policyforge
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql://policyforge:policyforge@db:5432/policyforge
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-dev-key}
+      STRIPE_API_KEY: ${STRIPE_API_KEY:-dev-key}
+      SUPABASE_URL: ${SUPABASE_URL:-http://localhost}
+      SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET:-dev-secret}
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+
+  frontend:
+    build: ./frontend
+    environment:
+      NEXT_PUBLIC_API_BASE: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
